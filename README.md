@@ -107,8 +107,27 @@ Verifica el estado del servicio y si Playwright está listo.
 
 ---
 
+### `GET /api/audit-page` (Acceso Rápido por URL)
+Audita una página pasando únicamente el parámetro `url` en la Query String del navegador o curl, con los parámetros pre-cargados por defecto:
+- `render_mode`: `"render"`
+- `timeout_ms`: `20000`
+- `allow_subdomains`: `false`
+- `wait_until`: `"networkidle"`
+- `include_html`: `true`
+
+**Ejemplo de uso:**
+```text
+GET /api/audit-page?url=https://www.nespresso.com/mx/es
+```
+o en curl:
+```bash
+curl -X GET "https://TU-URL/api/audit-page?url=https://www.nespresso.com/mx/es"
+```
+
+---
+
 ### `POST /api/audit-page`
-Audita a fondo una página individual. En **Modo Render** (`render`), levanta Playwright Chromium, ejecuta el JavaScript dinámico de SPAs, extrae `window.dataLayer` en memoria y captura hits de red en tiempo real.
+Audita a fondo una página individual. En **Modo Render** (`render`), levanta Playwright Chromium, ejecuta el JavaScript dinámico de SPAs, extrae `window.dataLayer` en memoria y captura hits de red en tiempo real. Permite personalizar cualquiera de los parámetros en el body JSON.
 
 - **Petición (Request):**
   ```json

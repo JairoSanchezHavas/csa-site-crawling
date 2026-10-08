@@ -8,7 +8,7 @@ import os
 import time
 from typing import AsyncGenerator
 
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -21,6 +21,7 @@ from app.schemas import (
     CrawlSiteResponse,
     HealthResponse,
     RenderMode,
+    WaitUntilMode,
 )
 from app.scraper import ScraperEngine
 from app.security import (
@@ -105,6 +106,48 @@ async def audit_page_endpoint(request_body: AuditPageRequest) -> AuditPageRespon
     # Perform page audit
     response = await scraper_engine.audit_page(request_body)
     return response
+
+
+@app.get("/api/audit-page", response_model=AuditPageResponse, tags=["Auditing"])
+async def audit_page_get_endpoint(
+    url: str = Query(..., description="Target webpage URL to audit"),
+    render_mode: RenderMode = Query(default=RenderMode.RENDER, description="Fetch engine: render or fast"),
+    timeout_ms: int = Query(default=20000, ge=3000, le=60000, description="Page timeout in ms"),
+    allow_subdomains: bool = Query(default=False, description="Whether sibling subdomains are allowed"),
+    wait_until: WaitUntilMode = Query(default=WaitUntilMode.NETWORKIDLE, description="Playwright wait condition"),
+    include_html: bool = Query(default=True, description="Include full rendered HTML string in response"),
+) -> AuditPageResponse:
+    """Audit a single webpage via GET query parameter with preloaded defaults:
+    
+    - render_mode: render
+    - timeout_ms: 20000
+    - allow_subdomains: false
+    - wait_until: networkidle
+    - include_html: true
+    """
+    clean_url = url.strip()
+    if not (clean_url.startswith("http://") or clean_url.startswith("https://")):
+        clean_url = "https://" + clean_url
+
+    req = AuditPageRequest(
+        url=clean_url,
+        render_mode=render_mode,
+        timeout_ms=timeout_ms,
+        allow_subdomains=allow_subdomains,
+        wait_until=wait_until,
+        include_html=include_html,
+    )
+
+    try:
+        await validate_url_against_ssrf(req.url)
+    except (SSRFSecurityError, InvalidURLError) as exc:
+        logger.warning(f"Rejected audit GET request for '{req.url}': {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Security/SSRF validation rejected target URL: {exc}",
+        )
+
+    return await scraper_engine.audit_page(req)
 
 
 @app.post("/api/crawl-site", response_model=CrawlSiteResponse, tags=["Auditing"])

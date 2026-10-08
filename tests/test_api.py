@@ -191,6 +191,52 @@ def test_audit_page_mocked_success(monkeypatch):
     assert data["network_hits"][0]["category"] == "ga4"
 
 
+def test_audit_page_get_endpoint_preloaded_defaults(monkeypatch):
+    """Test GET /api/audit-page?url=... uses preloaded defaults (render, include_html=True, etc.)."""
+    from app.main import scraper_engine
+    from app.schemas import AuditPageResponse
+
+    captured_req = {}
+
+    async def fake_audit_page(req):
+        captured_req["render_mode"] = req.render_mode
+        captured_req["timeout_ms"] = req.timeout_ms
+        captured_req["allow_subdomains"] = req.allow_subdomains
+        captured_req["wait_until"] = req.wait_until
+        captured_req["include_html"] = req.include_html
+        captured_req["url"] = req.url
+        return AuditPageResponse(
+            success=True,
+            url=req.url,
+            final_url=req.url,
+            http_status=200,
+            title="GET Audit Test",
+            render_mode_used=req.render_mode,
+            load_time_ms=100.0,
+            html="<html><body>Rendered</body></html>" if req.include_html else None,
+        )
+
+    monkeypatch.setattr(scraper_engine, "audit_page", fake_audit_page)
+
+    response = client.get("/api/audit-page", params={"url": "https://example.com"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert captured_req["render_mode"] == "render"
+    assert captured_req["timeout_ms"] == 20000
+    assert captured_req["allow_subdomains"] is False
+    assert captured_req["wait_until"] == "networkidle"
+    assert captured_req["include_html"] is True
+    assert data["html"] == "<html><body>Rendered</body></html>"
+
+
+def test_audit_page_get_endpoint_ssrf_blocked():
+    """Test GET /api/audit-page?url=... blocks SSRF attacks on localhost / metadata."""
+    response = client.get("/api/audit-page", params={"url": "http://127.0.0.1:8080"})
+    assert response.status_code == 400
+    assert "Security/SSRF validation rejected" in response.json()["detail"]
+
+
 def test_crawl_site_mocked(monkeypatch):
     """Test /api/crawl-site returns aggregated multi-page crawl report."""
     from app.main import scraper_engine
