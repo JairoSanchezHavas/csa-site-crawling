@@ -1,90 +1,108 @@
-# Guía de Despliegue en Google Cloud Run · CSA Tech Auditor
+# Guía de Despliegue en Google Cloud Run vía Cloud Shell
+> **Proyecto:** `csa-site-crawling` · **CSA Tech Auditor · Havas**  
+> **Repositorio GitHub:** `https://github.com/JairoSanchezHavas/csa-site-crawling`
 
-Esta guía contiene los pasos exactos y comandos de `gcloud` para desplegar el backend y la SPA de **CSA Tech Auditor · Havas** en **Google Cloud Run**, configurando el entorno con los recursos adecuados para la ejecución de Chromium headless (1–2 vCPU y 1–2 GiB de RAM).
-
----
-
-## 1. Prerrequisitos en Google Cloud Platform
-
-1. Cuenta de Google Cloud con facturación activa.
-2. Google Cloud SDK (`gcloud`) instalado y actualizado (`gcloud components update`).
-3. Permisos de IAM requeridos en el proyecto:
-   - `roles/run.admin` (Cloud Run Admin)
-   - `roles/artifactregistry.admin` (Artifact Registry Admin)
-   - `roles/cloudbuild.builds.editor` (Cloud Build Editor)
-   - `roles/iam.serviceAccountUser` (Service Account User)
+Esta guía describe el paso a paso exacto para desplegar el backend y la SPA en **Google Cloud Run** utilizando **Google Cloud Shell** directamente desde el navegador, clonando el repositorio público de GitHub sin necesidad de instalar dependencias ni herramientas locales en tu equipo.
 
 ---
 
-## 2. Configuración Inicial del Entorno
+## 1. Ventajas de Desplegar con Google Cloud Shell
 
-Reemplaza `TU_PROJECT_ID` y `TU_REGION` con los valores de tu entorno (por ejemplo, `csa-analytics-prod` y `us-central1` o `europe-west1`).
+- **Cero instalación local:** No necesitas tener instalado `gcloud`, Docker, Python ni Playwright en tu máquina de desarrollo.
+- **Entorno preconfigurado:** Cloud Shell ya incluye `git`, `gcloud`, Docker y credenciales de autenticación activas vinculadas a tu cuenta de Google Cloud.
+- **Conectividad directa:** La subida de imágenes a Artifact Registry se realiza a través de la red interna de Google, siendo ultra rápida.
+
+---
+
+## 2. Abrir Google Cloud Shell y Clonar el Proyecto
+
+1. Entra a la consola de Google Cloud: [https://console.cloud.google.com/](https://console.cloud.google.com/)
+2. Abre **Cloud Shell** haciendo clic en el icono **`>_`** en la barra superior o accede directamente a [https://shell.cloud.google.com/](https://shell.cloud.google.com/).
+3. Clona el repositorio público y entra a la carpeta:
 
 ```bash
-# 1. Autenticarse en Google Cloud
-gcloud auth login
+git clone https://github.com/JairoSanchezHavas/csa-site-crawling.git
+cd csa-site-crawling
+```
 
-# 2. Configurar el ID del proyecto
-export PROJECT_ID="TU_PROJECT_ID"
+*(Si ya habías clonado el repositorio anteriormente en Cloud Shell y deseas actualizarlo con los últimos cambios:)*
+```bash
+git pull origin main
+```
+
+---
+
+## 3. Definir Variables del Entorno en Cloud Shell
+
+Configura las variables base para tu despliegue. Puedes utilizar tu proyecto activo actual automáticamente o ingresar uno específico:
+
+```bash
+# Detectar el proyecto activo en Cloud Shell o asignar uno manualmente
+export PROJECT_ID=$(gcloud config get-value project)
+# Si deseas especificar otro proyecto distinto al actual, descomenta:
+# export PROJECT_ID="tu-id-de-proyecto-gcp"
+
 export REGION="us-central1"
 export SERVICE_NAME="csa-tech-auditor"
 export REPO_NAME="csa-docker-repo"
 export IMAGE_TAG="1.0.0"
 
+# Confirmar configuración en gcloud
 gcloud config set project $PROJECT_ID
 gcloud config set run/region $REGION
 
-# 3. Habilitar las APIs necesarias en GCP
+echo "Desplegando en Proyecto: $PROJECT_ID | Región: $REGION"
+```
+
+---
+
+## 4. Habilitar las APIs de Google Cloud
+
+Asegúrate de que los servicios necesarios estén activados en el proyecto:
+
+```bash
 gcloud services enable \
   run.googleapis.com \
   artifactregistry.googleapis.com \
-  cloudbuild.googleapis.com \
-  compute.googleapis.com
+  cloudbuild.googleapis.com
 ```
 
 ---
 
-## 3. Crear el Repositorio en Artifact Registry
+## 5. Crear el Repositorio en Artifact Registry
 
-Artifact Registry es el registro de contenedores recomendado para Cloud Run.
+Crea el registro de contenedores Docker en tu región si aún no existe:
 
 ```bash
+# Crear repositorio (solo la primera vez)
 gcloud artifacts repositories create $REPO_NAME \
   --repository-format=docker \
   --location=$REGION \
-  --description="Repositorio Docker para CSA Tech Auditor"
+  --description="Repositorio Docker para CSA Tech Auditor" \
+  2>/dev/null || echo "El repositorio ya existe, continuando..."
 ```
 
 ---
 
-## 4. Construcción y Empaquetado de la Imagen
+## 6. Construir la Imagen con Google Cloud Build
 
-### Opción A: Construcción Serverless con Google Cloud Build (Recomendado)
-No requiere Docker instalado localmente:
+Compilamos la imagen Docker directamente en la infraestructura serverless de GCP:
 
 ```bash
-IMAGE_URL="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:${IMAGE_TAG}"
+# Definir la URL canónica de la imagen en Artifact Registry
+export IMAGE_URL="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:${IMAGE_TAG}"
 
+echo "Construyendo imagen: $IMAGE_URL"
 gcloud builds submit --tag $IMAGE_URL .
 ```
 
-### Opción B: Construcción Local con Docker y Push
-```bash
-# Configurar credenciales de Docker para Artifact Registry
-gcloud auth configure-docker ${REGION}-docker.pkg.dev
-
-# Construir imagen localmente
-docker build -t $IMAGE_URL .
-
-# Subir al repositorio
-docker push $IMAGE_URL
-```
+*Cloud Build compilará el Dockerfile, instalará las dependencias fijadas y configurará Playwright v1.44 con Chromium listo para producción.*
 
 ---
 
-## 5. Despliegue en Google Cloud Run
+## 7. Desplegar en Google Cloud Run
 
-Dado que Playwright ejecuta instancias de Chromium en memoria para evaluar JavaScript y capturar el `dataLayer`, se requiere un dimensionamiento mínimo de **2 GiB de memoria RAM y 2 vCPUs**, con una concurrencia controlada (10–20 peticiones concurrentes por instancia) para evitar saturación de memoria.
+Desplegamos el contenedor especificando los recursos recomendados para Playwright headless (**2 GiB de RAM y 2 vCPUs**) con concurrencia controlada para evitar saturación de memoria durante auditorías simultáneas:
 
 ```bash
 gcloud run deploy $SERVICE_NAME \
@@ -101,45 +119,65 @@ gcloud run deploy $SERVICE_NAME \
   --set-env-vars="ENVIRONMENT=production,ALLOWED_ORIGINS=*,DEFAULT_TIMEOUT_MS=20000,MAX_CRAWL_PAGES=15,PLAYWRIGHT_HEADLESS=true"
 ```
 
-### Explicación de los Parámetros de Despliegue:
-- `--memory=2Gi`: Asigna 2 GiB de memoria RAM para garantizar espacio suficiente para páginas pesadas de SPAs y múltiples pestañas de Chromium.
-- `--cpu=2`: 2 vCPUs dedicadas para procesar compilación y ejecución rápida de JavaScript en el motor V8.
-- `--concurrency=10`: Limita el número de peticiones simultáneas procesadas por contenedor antes de que Cloud Run escale una nueva instancia horizontal.
-- `--timeout=180s`: Permite tiempo suficiente para auditorías batch de hasta 15 páginas sin interrupción de conexión.
-- `--min-instances=0`: Escala a 0 para optimizar costes cuando no hay auditorías en curso (cámbialo a `1` si deseas eliminar cold starts).
-- `--allow-unauthenticated`: Hace que el servicio sea accesible públicamente en la web (si requieres acceso solo corporativo con IAM, omite este flag).
+### Parámetros Explicados:
+- `--memory=2Gi` y `--cpu=2`: Recursos necesarios para que Chromium ejecute JavaScript pesado y renderice SPAs sin errores OOM (*Out Of Memory*).
+- `--concurrency=10`: Límite de solicitudes concurrentes por instancia antes de autogestionar escalado horizontal.
+- `--timeout=180s`: Margen de tiempo suficiente para rastreos de hasta 15 páginas internas.
+- `--min-instances=0`: Escala a 0 para no generar costes fijos mientras no se use la herramienta.
+- `--allow-unauthenticated`: Permite acceder al dashboard web públicamente. Si requieres acceso restringido corporativo (IAM / SSO de Google), omite este parámetro.
 
 ---
 
-## 6. Verificación Post-Despliegue
+## 8. Verificación y Pruebas en Cloud Shell
 
-Obtén la URL pública asignada por Cloud Run:
+Al finalizar el despliegue, Cloud Run te mostrará la URL pública del servicio. Puedes obtenerla y probarla directamente desde Cloud Shell:
 
 ```bash
 export SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --platform=managed --region=$REGION --format='value(status.url)')
-echo "Servicio desplegado en: $SERVICE_URL"
+echo "Servicio disponible en: $SERVICE_URL"
 ```
 
-### Probar el Endpoint de Salud:
+### 8.1 Probar Healthcheck
 ```bash
-curl -X GET "${SERVICE_URL}/health"
+curl -s -X GET "${SERVICE_URL}/health" | jq .
+```
+**Respuesta esperada:**
+```json
+{
+  "status": "ok",
+  "service": "CSA Tech Auditor · Havas",
+  "version": "1.0.0",
+  "playwright_ready": true
+}
 ```
 
-### Probar la Auditoría de Página:
+### 8.2 Probar Auditoría con Renderizado Playwright
 ```bash
-curl -X POST "${SERVICE_URL}/api/audit-page" \
+curl -s -X POST "${SERVICE_URL}/api/audit-page" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://example.com",
-    "render_mode": "render"
-  }'
+    "render_mode": "render",
+    "wait_until": "networkidle"
+  }' | jq '{success, final_url, http_status, render_mode_used, data_layer: .data_layer | length, hits: .network_hits | length}'
 ```
+
+### 8.3 Probar el Bloqueo de Ataques SSRF
+```bash
+curl -s -X POST "${SERVICE_URL}/api/audit-page" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "http://169.254.169.254/computeMetadata/v1/", "render_mode": "fast"}' | jq .
+```
+*Debe responder HTTP 400 rechazando el intento de acceso a metadatos internos de Google Cloud.*
+
+### 8.4 Acceder a la Interfaz Web (SPA)
+Abre en tu navegador la URL de `$SERVICE_URL` (por ejemplo `https://csa-tech-auditor-xxxxx-uc.a.run.app`). Verás el dashboard de **"CSA Tech Auditor · Havas"** listo para auditar sitios web.
 
 ---
 
-## 7. Mapeo de Dominio Personalizado (Opcional)
+## 9. Mapeo de Dominio Personalizado (Opcional)
 
-Si deseas apuntar un subdominio corporativo de Havas (ej. `auditor.csa.havas.com`):
+Si deseas apuntar tu dominio corporativo (ej. `auditor.csa.havas.com`):
 
 ```bash
 gcloud beta run domain-mappings create \
@@ -147,18 +185,14 @@ gcloud beta run domain-mappings create \
   --domain=auditor.csa.havas.com \
   --region=$REGION
 ```
-
-Sigue las instrucciones que devolverá `gcloud` para agregar los registros DNS `CNAME` o `A` correspondientes en tu proveedor DNS corporativo.
+Agrega los registros DNS `CNAME` o `A` que te indique el comando en la zona DNS corporativa.
 
 ---
 
-## 8. Monitorización y Logs
+## 10. Consultar Logs en Vivo desde Cloud Shell
 
-Para auditar el consumo de memoria y ver trazas de Playwright en Cloud Logging:
+Para monitorear el comportamiento de Playwright y rastreos:
 
 ```bash
-# Ver los últimos 50 logs del servicio
-gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=${SERVICE_NAME}" \
-  --limit=50 \
-  --format="table(timestamp, textPayload, jsonPayload.message)"
+gcloud logging tail "resource.type=cloud_run_revision AND resource.labels.service_name=${SERVICE_NAME}"
 ```
