@@ -91,9 +91,7 @@ CHROMIUM_FLAGS = [
     "--disable-setuid-sandbox",
     "--disable-dev-shm-usage",
     "--disable-gpu",
-    "--single-process",
     "--disable-extensions",
-    "--no-zygote",
 ]
 
 
@@ -200,7 +198,38 @@ class ScraperEngine:
 
     @property
     def is_browser_ready(self) -> bool:
-        return self._browser is not None
+        return self._browser is not None and self._browser.is_connected()
+
+    async def _ensure_browser(self) -> Optional[Browser]:
+        """Ensure a live, connected Chromium browser instance is available."""
+        if not PLAYWRIGHT_INSTALLED:
+            return None
+
+        async with self._lock:
+            if self._browser is None or not self._browser.is_connected():
+                logger.info("Initializing/Reconnecting Playwright Chromium browser...")
+                if self._playwright is None:
+                    self._playwright = await async_playwright().start()
+
+                try:
+                    self._browser = await self._playwright.chromium.launch(
+                        headless=self.headless,
+                        args=CHROMIUM_FLAGS,
+                    )
+                    logger.info("Playwright Chromium browser launched successfully.")
+                except Exception as exc:
+                    logger.error(f"Failed to launch Chromium with CHROMIUM_FLAGS: {exc}. Retrying with minimal flags...")
+                    try:
+                        self._browser = await self._playwright.chromium.launch(
+                            headless=self.headless,
+                            args=["--no-sandbox", "--disable-dev-shm-usage"],
+                        )
+                        logger.info("Playwright Chromium browser launched with fallback flags.")
+                    except Exception as fatal:
+                        logger.critical(f"Unable to launch Playwright browser: {fatal}")
+                        self._browser = None
+                        return None
+            return self._browser
 
     async def audit_page(self, req: AuditPageRequest) -> AuditPageResponse:
         """Audit a single page using the requested mode with anti-SSRF pre-check."""
@@ -219,17 +248,27 @@ class ScraperEngine:
             )
 
         # 2. Select execution engine
-        if req.render_mode == RenderMode.RENDER and self.is_browser_ready:
-            return await self._audit_with_playwright(validated_url, req)
+        if req.render_mode == RenderMode.RENDER:
+            browser = await self._ensure_browser()
+            if browser and browser.is_connected():
+                audit_res = await self._audit_with_playwright(browser, validated_url, req)
+                # If Playwright crashed or closed during audit, auto-heal and fallback
+                if not audit_res.success and "Target page, context or browser has been closed" in (audit_res.error or ""):
+                    logger.warning("Browser closed during navigation; recovering via fast mode...")
+                    async with self._lock:
+                        self._browser = None
+                    fast_res = await self._audit_with_httpx(validated_url, req)
+                    fast_res.error = f"Render mode recovered via Fast fallback: {audit_res.error}"
+                    return fast_res
+                return audit_res
+            else:
+                logger.warning("Playwright browser unavailable; falling back to Fast mode.")
+                return await self._audit_with_httpx(validated_url, req)
         else:
-            if req.render_mode == RenderMode.RENDER and not self.is_browser_ready:
-                logger.info("Playwright browser not ready; falling back to Fast mode.")
             return await self._audit_with_httpx(validated_url, req)
 
-    async def _audit_with_playwright(self, url: str, req: AuditPageRequest) -> AuditPageResponse:
+    async def _audit_with_playwright(self, browser: Browser, url: str, req: AuditPageRequest) -> AuditPageResponse:
         """Audit page using Headless Chromium with full JavaScript rendering and network tracing."""
-        assert self._browser is not None
-
         start_time = time.perf_counter()
         network_hits: List[NetworkHit] = []
         detected_cmps_dict: Dict[str, DetectedCmp] = {}
@@ -238,10 +277,8 @@ class ScraperEngine:
         context: Optional[BrowserContext] = None
         page: Optional[Page] = None
 
-        timeout_sec = req.timeout_ms / 1000.0
-
         try:
-            context = await self._browser.new_context(
+            context = await browser.new_context(
                 user_agent=REALISTIC_USER_AGENT,
                 viewport={"width": 1440, "height": 900},
                 ignore_https_errors=True,
@@ -296,14 +333,18 @@ class ScraperEngine:
             page.on("request", on_request)
             page.on("response", on_response)
 
-            # Navigate to target page
+            # Navigate to target page with resilient fallback
             wait_condition = req.wait_until.value
-            playwright_response = await page.goto(url, wait_until=wait_condition, timeout=req.timeout_ms)
+            playwright_response = None
+            try:
+                playwright_response = await page.goto(url, wait_until=wait_condition, timeout=req.timeout_ms)
+            except Exception as nav_err:
+                logger.warning(f"page.goto with wait_until='{wait_condition}' timed out or errored: {nav_err}. Proceeding with current page state...")
 
-            # Additional prudent stabilization for dynamic single page applications
+            # Additional stabilization for dynamic single page applications
             await asyncio.sleep(1.0)
 
-            final_url = page.url
+            final_url = page.url or url
             http_status = playwright_response.status if playwright_response else 200
 
             # Validate final redirect destination against Anti-SSRF
