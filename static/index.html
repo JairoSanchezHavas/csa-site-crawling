@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSA Tech Auditor · Havas | Digital Analytics & Tag Governance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #090d16;
+      --bg-card: #111726;
+      --bg-card-hover: #161e31;
+      --bg-elevated: #1a2238;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: #00e5ff;
+      --havas-red: #ff0036;
+      --csa-cyan: #00e5ff;
+      --csa-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-yellow: #f59e0b;
+      --accent-purple: #8b5cf6;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+      --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Header & Branding */
+    header {
+      background: rgba(17, 23, 38, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 1rem 2rem;
+    }
+
+    .header-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .brand-badge-csa {
+      background: linear-gradient(135deg, #00e5ff, #3b82f6);
+      color: #050811;
+      font-weight: 800;
+      font-size: 0.85rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      box-shadow: 0 0 15px rgba(0, 229, 255, 0.35);
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .brand-havas {
+      color: var(--havas-red);
+      font-weight: 800;
+    }
+
+    .system-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      background: var(--bg-elevated);
+      padding: 0.4rem 0.9rem;
+      border-radius: 9999px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--accent-green);
+      box-shadow: 0 0 8px var(--accent-green);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 2.5rem 2rem;
+      width: 100%;
+    }
+
+    /* Hero / Search Section */
+    .audit-controls-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      margin-bottom: 2.5rem;
+      box-shadow: var(--shadow-card);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .audit-controls-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, var(--havas-red), var(--csa-cyan), var(--csa-blue));
+    }
+
+    .controls-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .controls-header h1 {
+      font-size: 1.65rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+      letter-spacing: -0.02em;
+    }
+
+    .controls-header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: flex-start;
+      margin-bottom: 1.25rem;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .url-input {
+      width: 100%;
+      background: var(--bg-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.25rem;
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .url-input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.2);
+    }
+
+    .btn-audit {
+      background: linear-gradient(135deg, var(--csa-cyan), var(--csa-blue));
+      color: #050811;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 1rem 2.25rem;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      white-space: nowrap;
+    }
+
+    .btn-audit:hover:not(:disabled) {
+      filter: brightness(1.15);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 229, 255, 0.3);
+    }
+
+    .btn-audit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .options-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.75rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    .option-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+
+    .option-item input[type="checkbox"],
+    .option-item input[type="radio"] {
+      accent-color: var(--csa-cyan);
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Progress & Metrics */
+    .progress-section {
+      display: none;
+      margin-bottom: 2.5rem;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: var(--bg-elevated);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 0.75rem;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--csa-cyan), var(--csa-blue));
+      transition: width 0.3s ease;
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    /* KPI Summary Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      box-shadow: var(--shadow-card);
+    }
+
+    .kpi-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+
+    .kpi-value {
+      font-size: 1.65rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+
+    .kpi-tag {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+    }
+
+    .tag-detected {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .tag-missing {
+      background: rgba(255, 0, 54, 0.15);
+      color: var(--havas-red);
+      border: 1px solid rgba(255, 0, 54, 0.3);
+    }
+
+    .tag-warning {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent-yellow);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    /* Pages Table */
+    .results-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      box-shadow: var(--shadow-card);
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .results-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .results-actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .btn-action {
+      background: var(--bg-elevated);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 0.45rem 0.9rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-action:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--csa-cyan);
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.88rem;
+    }
+
+    th {
+      background: var(--bg-main);
+      padding: 0.9rem 1rem;
+      color: var(--text-dim);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      vertical-align: middle;
+    }
+
+    tr:hover td {
+      background: var(--bg-card-hover);
+      color: var(--text-main);
+    }
+
+    .url-cell {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--csa-cyan);
+      max-width: 320px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-right: 0.3rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .badge-ga4 { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+    .badge-gtm { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .badge-meta { background: rgba(139, 92, 246, 0.2); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.4); }
+    .badge-cmp { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .badge-tiktok { background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4); }
+    .badge-linkedin { background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.4); }
+
+    /* Modal / Inspector */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 17, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      padding: 2rem;
+      overflow-y: auto;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-dialog {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      max-width: 900px;
+      width: 100%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 1.25rem 1.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .btn-close {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 1.5rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .btn-close:hover {
+      color: var(--text-main);
+    }
+
+    .modal-body {
+      padding: 1.5rem 1.75rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .inspector-section h4 {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 0.75rem;
+      font-weight: 700;
+    }
+
+    .code-block {
+      background: var(--bg-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      max-height: 250px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 1.5rem 2rem;
+      background: var(--bg-main);
+      color: var(--text-dim);
+      font-size: 0.82rem;
+      text-align: center;
+    }
+
+    /* Utilities */
+    .text-success { color: var(--accent-green); }
+    .text-error { color: var(--havas-red); }
+    .text-warning { color: var(--accent-yellow); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-container">
+      <div class="brand-group">
+        <span class="brand-badge-csa">CSA</span>
+        <div class="brand-title">Tech Auditor <span class="brand-havas">· HAVAS</span></div>
+      </div>
+      <div class="system-status" id="system-status-indicator">
+        <div class="status-dot"></div>
+        <span id="backend-status-text">Backend Cloud Run Ready</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="audit-controls-card">
+      <div class="controls-header">
+        <h1>Auditoría Integral de Analítica y Gobernanza de Tags</h1>
+        <p>Inspección profunda con Playwright Headless Chromium, evaluación en memoria de <code>dataLayer</code> y trazabilidad de hits en SPAs.</p>
+      </div>
+
+      <div class="form-grid">
+        <div class="input-wrapper">
+          <input
+            type="url"
+            id="target-url-input"
+            class="url-input"
+            placeholder="https://ejemplo.com"
+            value="https://example.com"
+            required
+          />
+        </div>
+        <button id="start-audit-btn" class="btn-audit">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+          Iniciar Auditoría
+        </button>
+      </div>
+
+      <div class="options-bar">
+        <label class="option-item">
+          <input type="radio" name="render_mode" value="render" checked>
+          <span>Modo Render (Playwright + JS dinámico)</span>
+        </label>
+        <label class="option-item">
+          <input type="radio" name="render_mode" value="fast">
+          <span>Modo Rápido (HTTP Fallback)</span>
+        </label>
+        <label class="option-item">
+          <input type="checkbox" id="allow-subdomains-check">
+          <span>Permitir subdominios del apex domain</span>
+        </label>
+        <label class="option-item">
+          <input type="checkbox" id="crawl-full-site-check" checked>
+          <span>Auditar hasta 15 páginas internas (Crawl)</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Progress Section -->
+    <section class="progress-section" id="progress-section">
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progress-bar-fill"></div>
+      </div>
+      <div class="progress-info">
+        <span id="progress-status-label">Inicializando auditoría...</span>
+        <span id="progress-count-label">0 / 15</span>
+      </div>
+    </section>
+
+    <!-- Executive KPI Dashboard -->
+    <section class="kpi-grid" id="kpi-dashboard" style="display: none;">
+      <div class="kpi-card">
+        <div class="kpi-label">Páginas Auditadas</div>
+        <div class="kpi-value" id="kpi-pages-count">0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Google Tag Manager</div>
+        <div class="kpi-value" id="kpi-gtm-status">-</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Google Analytics 4</div>
+        <div class="kpi-value" id="kpi-ga4-status">-</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Meta (Facebook) Pixel</div>
+        <div class="kpi-value" id="kpi-meta-status">-</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">CMP / Consent Mode</div>
+        <div class="kpi-value" id="kpi-cmp-status">-</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Eventos dataLayer</div>
+        <div class="kpi-value" id="kpi-datalayer-events">0</div>
+      </div>
+    </section>
+
+    <!-- Results Table -->
+    <section class="results-card" id="results-card" style="display: none;">
+      <div class="results-header">
+        <div class="results-title">Detalle por Página Auditada</div>
+        <div class="results-actions">
+          <button class="btn-action" id="btn-export-json">Exportar JSON</button>
+          <button class="btn-action" id="btn-export-csv">Exportar CSV</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>URL Auditada</th>
+              <th>Estado</th>
+              <th>Carga</th>
+              <th>Hits de Red</th>
+              <th>dataLayer</th>
+              <th>CMP Detectado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="pages-table-body">
+            <!-- Dynamically populated rows -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Inspector Modal -->
+  <div class="modal-overlay" id="inspector-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-title">Detalle de Auditoría</h3>
+        <button class="btn-close" id="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="inspector-section">
+          <h4>URL Final y Canonical</h4>
+          <div class="code-block" id="modal-urls"></div>
+        </div>
+        <div class="inspector-section">
+          <h4>window.dataLayer en Memoria</h4>
+          <div class="code-block" id="modal-datalayer"></div>
+        </div>
+        <div class="inspector-section">
+          <h4>Hits de Red Interceptados</h4>
+          <div class="code-block" id="modal-network"></div>
+        </div>
+        <div class="inspector-section">
+          <h4>CMPs y Cookies Detectadas</h4>
+          <div class="code-block" id="modal-cmp-cookies"></div>
+        </div>
+        <div class="inspector-section">
+          <h4>Cabeceras de Seguridad</h4>
+          <div class="code-block" id="modal-headers"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    CSA Tech Auditor · Havas Media Network &copy; 2026. Solución Cloud Run para Gobernanza Digital y Analítica.
+  </footer>
+
+  <script>
+    // Configuration: Allow window.API_BASE_URL override or relative root
+    window.API_BASE_URL = window.API_BASE_URL || '';
+
+    let auditResults = [];
+    let isAuditing = false;
+
+    // DOM Elements
+    const targetUrlInput = document.getElementById('target-url-input');
+    const startAuditBtn = document.getElementById('start-audit-btn');
+    const allowSubdomainsCheck = document.getElementById('allow-subdomains-check');
+    const crawlFullSiteCheck = document.getElementById('crawl-full-site-check');
+    const progressSection = document.getElementById('progress-section');
+    const progressBarFill = document.getElementById('progress-bar-fill');
+    const progressStatusLabel = document.getElementById('progress-status-label');
+    const progressCountLabel = document.getElementById('progress-count-label');
+    const kpiDashboard = document.getElementById('kpi-dashboard');
+    const resultsCard = document.getElementById('results-card');
+    const pagesTableBody = document.getElementById('pages-table-body');
+    const inspectorModal = document.getElementById('inspector-modal');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+
+    // Healthcheck on load
+    async function checkBackendHealth() {
+      try {
+        const resp = await fetch(`${window.API_BASE_URL}/health`);
+        if (resp.ok) {
+          const data = await resp.json();
+          document.getElementById('backend-status-text').textContent =
+            data.playwright_ready ? 'Cloud Run + Playwright Ready' : 'Backend Ready (Fast Mode)';
+        }
+      } catch (e) {
+        document.getElementById('backend-status-text').textContent = 'Backend Offline';
+        document.querySelector('.status-dot').style.backgroundColor = 'var(--havas-red)';
+      }
+    }
+    checkBackendHealth();
+
+    // Start Audit Workflow
+    startAuditBtn.addEventListener('click', async () => {
+      const url = targetUrlInput.value.trim();
+      if (!url) {
+        alert('Por favor introduce una URL válida.');
+        return;
+      }
+
+      const renderMode = document.querySelector('input[name="render_mode"]:checked').value;
+      const allowSubdomains = allowSubdomainsCheck.checked;
+      const crawlSite = crawlFullSiteCheck.checked;
+
+      isAuditing = true;
+      startAuditBtn.disabled = true;
+      auditResults = [];
+      pagesTableBody.innerHTML = '';
+      progressSection.style.display = 'block';
+      kpiDashboard.style.display = 'grid';
+      resultsCard.style.display = 'block';
+
+      if (crawlSite) {
+        // Multi-page progressive crawl client-side via atomic /api/audit-page
+        await runProgressiveCrawl(url, renderMode, allowSubdomains, 15);
+      } else {
+        // Single page audit
+        await runSingleAudit(url, renderMode, allowSubdomains);
+      }
+
+      isAuditing = false;
+      startAuditBtn.disabled = false;
+      progressStatusLabel.textContent = 'Auditoría completada exitosamente.';
+    });
+
+    async function runSingleAudit(url, renderMode, allowSubdomains) {
+      updateProgress(1, 1, `Auditoría de página única: ${url}`);
+      try {
+        const resp = await fetch(`${window.API_BASE_URL}/api/audit-page`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: url,
+            render_mode: renderMode,
+            allow_subdomains: allowSubdomains,
+            timeout_ms: 20000,
+          }),
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) {
+          throw new Error(data.detail || 'Error en auditoría');
+        }
+
+        auditResults.push(data);
+        renderTableRow(data, 1);
+        updateKPIs();
+      } catch (err) {
+        alert(`Error al auditar la página: ${err.message}`);
+      }
+    }
+
+    async function runProgressiveCrawl(startUrl, renderMode, allowSubdomains, maxPages) {
+      const visited = new Set();
+      const queue = [startUrl];
+      let baseFinalUrl = startUrl;
+
+      while (queue.length > 0 && visited.size < maxPages) {
+        const currentUrl = queue.shift();
+        if (visited.has(currentUrl)) continue;
+
+        visited.add(currentUrl);
+        const index = visited.size;
+        updateProgress(index, maxPages, `Auditando (${index}/${maxPages}): ${currentUrl}`);
+
+        try {
+          const resp = await fetch(`${window.API_BASE_URL}/api/audit-page`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              url: currentUrl,
+              render_mode: renderMode,
+              allow_subdomains: allowSubdomains,
+              timeout_ms: 20000,
+            }),
+          });
+
+          if (!resp.ok) {
+            const errData = await resp.json();
+            throw new Error(errData.detail || `HTTP ${resp.status}`);
+          }
+
+          const pageData = await resp.json();
+          auditResults.push(pageData);
+          renderTableRow(pageData, index);
+          updateKPIs();
+
+          if (index === 1 && pageData.final_url) {
+            baseFinalUrl = pageData.final_url;
+          }
+
+          // Queue newly discovered internal links
+          if (pageData.internal_links && Array.isArray(pageData.internal_links)) {
+            for (const link of pageData.internal_links) {
+              if (!visited.has(link) && !queue.includes(link) && queue.length < 50) {
+                queue.push(link);
+              }
+            }
+          }
+        } catch (error) {
+          const failedEntry = {
+            success: false,
+            url: currentUrl,
+            final_url: currentUrl,
+            http_status: 500,
+            render_mode_used: renderMode,
+            load_time_ms: 0,
+            error: error.message,
+            network_hits: [],
+            data_layer: [],
+            detected_cmps: [],
+          };
+          auditResults.push(failedEntry);
+          renderTableRow(failedEntry, index);
+        }
+      }
+    }
+
+    function updateProgress(current, total, message) {
+      const pct = Math.min(Math.round((current / total) * 100), 100);
+      progressBarFill.style.width = `${pct}%`;
+      progressCountLabel.textContent = `${current} / ${total}`;
+      progressStatusLabel.textContent = message;
+    }
+
+    function renderTableRow(item, index) {
+      const tr = document.createElement('tr');
+
+      const statusBadge = item.success
+        ? `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: var(--accent-green);">${item.http_status}</span>`
+        : `<span class="badge" style="background: rgba(255, 0, 54, 0.2); color: var(--havas-red);">Error</span>`;
+
+      // Network hits breakdown badges
+      const hits = item.network_hits || [];
+      const hasGTM = hits.some(h => h.category === 'gtm');
+      const hasGA4 = hits.some(h => h.category === 'ga4');
+      const hasMeta = hits.some(h => h.category === 'meta');
+      const hasTikTok = hits.some(h => h.category === 'tiktok');
+      const hasLinkedIn = hits.some(h => h.category === 'linkedin');
+
+      let hitsBadges = '';
+      if (hasGTM) hitsBadges += `<span class="badge badge-gtm">GTM</span>`;
+      if (hasGA4) hitsBadges += `<span class="badge badge-ga4">GA4</span>`;
+      if (hasMeta) hitsBadges += `<span class="badge badge-meta">Meta</span>`;
+      if (hasTikTok) hitsBadges += `<span class="badge badge-tiktok">TikTok</span>`;
+      if (hasLinkedIn) hitsBadges += `<span class="badge badge-linkedin">LinkedIn</span>`;
+      if (!hitsBadges) hitsBadges = `<span style="color: var(--text-dim);">-</span>`;
+
+      const dlCount = (item.data_layer || []).length;
+      const cmps = (item.detected_cmps || []).map(c => c.name).join(', ') || '-';
+
+      tr.innerHTML = `
+        <td>${index}</td>
+        <td class="url-cell" title="${item.final_url || item.url}">${item.final_url || item.url}</td>
+        <td>${statusBadge}</td>
+        <td>${item.load_time_ms ? `${item.load_time_ms} ms` : '-'}</td>
+        <td>${hitsBadges}</td>
+        <td>${dlCount > 0 ? `<span class="text-success">${dlCount} eventos</span>` : '<span class="text-dim">0</span>'}</td>
+        <td>${cmps}</td>
+        <td>
+          <button class="btn-action btn-inspect" data-idx="${auditResults.length - 1}">Inspeccionar</button>
+        </td>
+      `;
+
+      pagesTableBody.appendChild(tr);
+
+      tr.querySelector('.btn-inspect').addEventListener('click', (e) => {
+        const idx = e.currentTarget.getAttribute('data-idx');
+        openInspectorModal(auditResults[idx]);
+      });
+    }
+
+    function updateKPIs() {
+      document.getElementById('kpi-pages-count').textContent = auditResults.length;
+
+      let gtmFound = false;
+      let ga4Found = false;
+      let metaFound = false;
+      let cmpsFound = new Set();
+      let totalDLPushes = 0;
+
+      for (const res of auditResults) {
+        if (!res.success) continue;
+        const hits = res.network_hits || [];
+        if (hits.some(h => h.category === 'gtm')) gtmFound = true;
+        if (hits.some(h => h.category === 'ga4')) ga4Found = true;
+        if (hits.some(h => h.category === 'meta')) metaFound = true;
+        (res.detected_cmps || []).forEach(c => cmpsFound.add(c.name));
+        totalDLPushes += (res.data_layer || []).length;
+      }
+
+      document.getElementById('kpi-gtm-status').innerHTML = gtmFound
+        ? `<span class="kpi-tag tag-detected">Detectado</span>`
+        : `<span class="kpi-tag tag-missing">No Detectado</span>`;
+
+      document.getElementById('kpi-ga4-status').innerHTML = ga4Found
+        ? `<span class="kpi-tag tag-detected">Activo</span>`
+        : `<span class="kpi-tag tag-missing">Sin Hits</span>`;
+
+      document.getElementById('kpi-meta-status').innerHTML = metaFound
+        ? `<span class="kpi-tag tag-detected">Pixel Activo</span>`
+        : `<span class="kpi-tag tag-missing">No Detectado</span>`;
+
+      document.getElementById('kpi-cmp-status').innerHTML = cmpsFound.size > 0
+        ? `<span class="kpi-tag tag-detected">${Array.from(cmpsFound).join(', ')}</span>`
+        : `<span class="kpi-tag tag-warning">Sin CMP</span>`;
+
+      document.getElementById('kpi-datalayer-events').textContent = totalDLPushes;
+    }
+
+    function openInspectorModal(item) {
+      document.getElementById('modal-title').textContent = `Auditoría: ${item.title || item.url}`;
+      document.getElementById('modal-urls').textContent =
+        `URL Solicitada: ${item.url}\nURL Final: ${item.final_url}\nCanonical: ${item.canonical_url || 'N/A'}\nSame Origin: ${item.is_same_origin}\nModo: ${item.render_mode_used}`;
+
+      document.getElementById('modal-datalayer').textContent =
+        JSON.stringify(item.data_layer || [], null, 2);
+
+      document.getElementById('modal-network').textContent =
+        JSON.stringify(item.network_hits || [], null, 2);
+
+      document.getElementById('modal-cmp-cookies').textContent =
+        `CMPs:\n${JSON.stringify(item.detected_cmps || [], null, 2)}\n\nCookies (${(item.cookies || []).length}):\n${JSON.stringify(item.cookies || [], null, 2)}`;
+
+      document.getElementById('modal-headers').textContent =
+        JSON.stringify(item.security_headers || {}, null, 2);
+
+      inspectorModal.style.display = 'flex';
+    }
+
+    modalCloseBtn.addEventListener('click', () => {
+      inspectorModal.style.display = 'none';
+    });
+
+    inspectorModal.addEventListener('click', (e) => {
+      if (e.target === inspectorModal) inspectorModal.style.display = 'none';
+    });
+
+    // Export Reports
+    document.getElementById('btn-export-json').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(auditResults, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `csa-audit-${Date.now()}.json`;
+      a.click();
+    });
+
+    document.getElementById('btn-export-csv').addEventListener('click', () => {
+      const rows = [
+        ['Index', 'URL', 'Final URL', 'HTTP Status', 'Load Time ms', 'Hits', 'DataLayer Count', 'CMP'],
+      ];
+      auditResults.forEach((r, idx) => {
+        rows.push([
+          idx + 1,
+          `"${r.url}"`,
+          `"${r.final_url}"`,
+          r.http_status,
+          r.load_time_ms,
+          (r.network_hits || []).length,
+          (r.data_layer || []).length,
+          `"${(r.detected_cmps || []).map(c => c.name).join(', ')}"`,
+        ]);
+      });
+      const csv = rows.map(e => e.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `csa-audit-${Date.now()}.csv`;
+      a.click();
+    });
+  </script>
+</body>
+</html>

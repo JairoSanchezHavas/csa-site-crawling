@@ -1,0 +1,10 @@
+# Production dependencies strictly pinned with ==
+fastapi==0.116.2
+uvicorn==0.29.0
+starlette==0.48.0
+pydantic==2.13.4
+pydantic-settings==2.15.0
+playwright==1.44.0
+httpx==0.28.1
+dnspython==2.6.1
+python-multipart==0.0.18

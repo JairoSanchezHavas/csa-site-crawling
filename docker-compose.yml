@@ -1,0 +1,31 @@
+services:
+  csa-auditor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: csa_tech_auditor
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - HOST=0.0.0.0
+      - ALLOWED_ORIGINS=*
+      - DEFAULT_TIMEOUT_MS=20000
+      - MAX_CRAWL_PAGES=15
+      - PLAYWRIGHT_HEADLESS=true
+      - ENVIRONMENT=production
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2048M
+        reservations:
+          cpus: "1.0"
+          memory: 1024M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
