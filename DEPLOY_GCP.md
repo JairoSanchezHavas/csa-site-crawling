@@ -152,6 +152,14 @@ curl -s -X GET "${SERVICE_URL}/health" | jq .
 ```
 
 ### 8.2 Probar Auditoría con Renderizado Playwright
+
+**Opción A: Vía GET (Acceso Rápido desde navegador o curl con parámetros pre-cargados):**
+```bash
+curl -s -X GET "${SERVICE_URL}/api/audit-page?url=https://example.com" | jq '{success, final_url, http_status, render_mode_used, data_layer: .data_layer | length, hits: .network_hits | length}'
+```
+*(O accede directamente en tu navegador a: `${SERVICE_URL}/api/audit-page?url=https://example.com`)*
+
+**Opción B: Vía POST (Payload JSON personalizable):**
 ```bash
 curl -s -X POST "${SERVICE_URL}/api/audit-page" \
   -H "Content-Type: application/json" \

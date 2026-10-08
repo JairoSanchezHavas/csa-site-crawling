@@ -129,6 +129,14 @@ curl -X POST http://localhost:8080/api/audit-page \
 ---
 
 ### 3. Auditar una Página con Modo Render (Playwright)
+
+#### Opción A: Vía GET (Acceso Rápido por URL con pre-cargado de render y HTML completo)
+```bash
+curl -X GET "http://localhost:8080/api/audit-page?url=https://example.com"
+```
+*(También puedes abrir `http://localhost:8080/api/audit-page?url=https://example.com` directamente en tu navegador).*
+
+#### Opción B: Vía POST (Payload JSON personalizable)
 Audita una página pública con ejecución completa de JavaScript y captura de `dataLayer`:
 
 ```bash
